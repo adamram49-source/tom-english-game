@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>האנגלית של תום וגיא</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .hidden { display: none !important; }
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 50; }
+        .toast { background-color: #333; color: white; padding: 12px 24px; border-radius: 8px; margin-top: 10px; opacity: 0; transition: opacity 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        .toast.show { opacity: 1; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800 p-4 md:p-8 flex flex-col items-center">
+
+    <!-- התראות קופצות -->
+    <div id="toast-container"></div>
+
+    <div class="w-full max-w-4xl">
+        
+        <!-- כותרת ראשית -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-blue-600 mb-2">האנגלית של תום</h1>
+            <p class="text-gray-500">לומדים אנגלית בכיף עם גיא ותום</p>
+        </header>
+
+        <!-- מסך בחירה ראשי -->
+        <div id="view-selection" class="glass-panel p-8 text-center space-y-6">
+            <h2 class="text-2xl font-bold mb-6">מי נכנס למערכת?</h2>
+            <div class="flex flex-col md:flex-row justify-center gap-6">
+                <button onclick="showLoginGuy()" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white text-xl font-bold py-8 px-6 rounded-2xl transition transform hover:scale-105 shadow-lg flex flex-col items-center">
+                    <i class="fas fa-user-shield text-4xl mb-4"></i>
+                    גיא (מנהל)
+                </button>
+                <button onclick="loginTom()" class="flex-1 bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-8 px-6 rounded-2xl transition transform hover:scale-105 shadow-lg flex flex-col items-center">
+                    <i class="fas fa-gamepad text-4xl mb-4"></i>
+                    תום (שחקן)
+                </button>
+            </div>
+        </div>
+
+        <!-- מסך כניסה לגיא -->
+        <div id="view-guy-login" class="glass-panel p-8 text-center max-w-md mx-auto hidden relative">
+            <button onclick="showView('view-selection')" class="text-gray-400 hover:text-gray-800 absolute top-4 right-4"><i class="fas fa-times text-xl"></i></button>
+            <h2 class="text-2xl font-bold mb-6 text-indigo-600">כניסת מנהל</h2>
+            <input type="password" id="guy-password" placeholder="הכנס סיסמה..." class="w-full p-4 border-2 border-indigo-100 rounded-xl mb-4 text-center text-xl focus:outline-none focus:border-indigo-500" dir="ltr">
+            <button onclick="verifyGuy()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl transition shadow">היכנס</button>
+        </div>
+
+        <!-- לוח בקרה של גיא -->
+        <div id="view-guy-dash" class="hidden">
+            <div class="glass-panel p-6 mb-6 relative">
+                <button onclick="logout()" class="absolute top-4 left-4 text-red-500 hover:text-red-700 font-bold"><i class="fas fa-sign-out-alt ml-1"></i> יציאה</button>
+                <h2 class="text-2xl font-bold mb-4 text-indigo-600">לוח הבקרה של גיא</h2>
+                
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <h3 class="font-bold mb-2">הוספת מילה חדשה (AI)</h3>
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <input type="text" id="new-word-input" placeholder="לדוגמה: Apple או תפוח" class="flex-1 p-3 border rounded-lg focus:outline-none">
+                        <button onclick="addWordAI()" id="btn-add-word" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                            <i class="fas fa-magic ml-1"></i> נתח והוסף
+                        </button>
+                    </div>
+                    <div id="ai-loading" class="hidden mt-4 text-center text-indigo-500"><div class="loader mb-2"></div>ה-AI מנתח...</div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6">
+                <h3 class="text-xl font-bold mb-4">ניהול מילים (<span id="word-count-guy">0</span>)</h3>
+                <div id="guy-words-list" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- לוח בקרה של תום -->
+        <div id="view-tom-dash" class="hidden">
+            <div class="glass-panel p-6 mb-6 text-center relative">
+                <button onclick="logout()" class="absolute top-4 left-4 text-gray-500 hover:text-gray-700 font-bold"><i class="fas fa-sign-out-alt ml-1"></i> חזרה</button>
+                <h2 class="text-3xl font-bold mb-6 text-green-600">היי תום! מוכן למשחק?</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="startPractice('words')" class="bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-6 px-4 rounded-xl transition shadow">
+                        <i class="fas fa-spell-check text-3xl mb-2 block"></i> תרגול מילים
+                    </button>
+                    <button onclick="startPractice('sentences')" class="bg-purple-500 hover:bg-purple-600 text-white text-xl font-bold py-6 px-4 rounded-xl transition shadow">
+                        <i class="fas fa-comments text-3xl mb-2 block"></i> תרגול משפטים
+                    </button>
+                </div>
+            </div>
+            <div class="glass-panel p-6">
+                <h3 class="text-xl font-bold mb-4 text-center text-gray-700">המילים שלמדנו</h3>
+                <div id="tom-words-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- אזור תרגול -->
+        <div id="view-practice" class="glass-panel p-8 text-center max-w-2xl mx-auto hidden relative">
+            <button onclick="showView('view-tom-dash')" class="absolute top-4 left-4 text-gray-500 hover:text-gray-800 font-bold"><i class="fas fa-arrow-right ml-1"></i> חזרה</button>
+            <h2 id="practice-title" class="text-2xl font-bold mb-8 text-blue-600">תרגול</h2>
+            <div id="practice-loading" class="hidden mt-4 text-center text-blue-500 mb-8"><div class="loader mb-2"></div></div>
+            <div id="practice-content" class="hidden">
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-8 mb-6">
+                    <p id="practice-hebrew" class="text-4xl md:text-5xl font-extrabold text-gray-800"></p>
+                </div>
+                <p class="text-gray-500 mb-2">איך אומרים את זה באנגלית? (כתוב בעברית):</p>
+                <input type="text" id="practice-input" placeholder="למשל: אפל" class="w-full p-4 border-2 border-gray-300 rounded-xl mb-6 text-center text-2xl focus:outline-none focus:border-blue-500" autocomplete="off">
+                <button onclick="checkAnswer()" class="w-full bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-4 rounded-xl transition shadow-lg">בדיקה!</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- פיירבייס וקוד לוגיקה -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // הגדרות פיירבייס שלך
+        const firebaseConfig = {
+            apiKey: "AIzaSyAkJu6Rzjfhk6EUW1288j4PYxkX-a7XCK8",
+            authDomain: "english-tom-learn.firebaseapp.com",
+            projectId: "english-tom-learn",
+            databaseURL: "https://english-tom-learn-default-rtdb.firebaseio.com", // ודא שזה ה-URL הנכון שלך
+            storageBucket: "english-tom-learn.firebasestorage.app",
+            messagingSenderId: "105132205957",
+            appId: "1:105132205957:web:549bc5ac270758502546ec",
+            measurementId: "G-BTP8V1Y2C2"
+        };
+
+        // מפתח גוגל AI שלך
+        const GEMINI_API_KEY = "AIzaSyAGOM5nXcjQHcOF59iCVf9QmZ0zNv8KjiI";
+
+        // אתחול
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let vocabularyList = [];
+        let currentPracticeData = null;
+        let currentPracticeType = 'words';
+
+        // כניסה אנונימית וטעינת נתונים
+        signInAnonymously(auth).then(() => {
+            const wordsRef = ref(db, 'vocabulary');
+            onValue(wordsRef, (snapshot) => {
+                const data = snapshot.val();
+                vocabularyList = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+                renderGuyWords();
+                renderTomWords();
+                document.getElementById('word-count-guy').innerText = vocabularyList.length;
+            });
+        }).catch(err => console.error("Firebase Auth Error:", err));
+
+        // ניהול תצוגות
+        window.showView = (id) => {
+            ['view-selection', 'view-guy-login', 'view-guy-dash', 'view-tom-dash', 'view-practice'].forEach(v => document.getElementById(v).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        };
+
+        window.showLoginGuy = () => showView('view-guy-login');
+        window.loginTom = () => showView('view-tom-dash');
+        window.logout = () => showView('view-selection');
+        window.verifyGuy = () => {
+            if (document.getElementById('guy-password').value === '5312') showView('view-guy-dash');
+            else showToast('סיסמה שגויה!', 'error');
+        };
+
+        // לוגיקת AI (Gemini)
+        async function callGemini(sys, user) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: sys }] },
+                    contents: [{ parts: [{ text: user }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                })
+            });
+            const data = await response.json();
+            if (!data.candidates) throw new Error("AI failed");
+            return JSON.parse(data.candidates[0].content.parts[0].text);
+        }
+
+        window.addWordAI = async () => {
+            const input = document.getElementById('new-word-input').value.trim();
+            if (!input) return;
+            document.getElementById('ai-loading').classList.remove('hidden');
+            document.getElementById('btn-add-word').disabled = true;
+
+            try {
+                const res = await callGemini("Analyze Hebrew/English word. Return JSON: {\"english\": \"word\", \"hebrew\": \"translation\", \"phonetics\": [\"option1 in hebrew\", \"option2\"]}", input);
+                const wordId = res.english.toLowerCase().replace(/[^a-z]/g, '');
+                await set(ref(db, 'vocabulary/' + wordId), res);
+                document.getElementById('new-word-input').value = '';
+                showToast("המילה נוספה בהצלחה!");
+            } catch (e) {
+                console.error(e);
+                showToast("שגיאה בניתוח המילה", "error");
+            } finally {
+                document.getElementById('ai-loading').classList.add('hidden');
+                document.getElementById('btn-add-word').disabled = false;
+            }
+        };
+
+        window.deleteWord = async (id) => {
+            if(confirm("למחוק את המילה?")) await remove(ref(db, 'vocabulary/' + id));
+        };
+
+        window.updatePhonetics = async (id) => {
+            const val = document.getElementById(`phonetic-input-${id}`).value;
+            const phonetics = val.split(',').map(s => s.trim()).filter(s => s);
+            await update(ref(db, 'vocabulary/' + id), { phonetics });
+            showToast("עודכן!");
+        };
+
+        // רינדור רשימות
+        function renderGuyWords() {
+            const container = document.getElementById('guy-words-list');
+            container.innerHTML = vocabularyList.map(v => `
+                <div class="bg-white p-4 rounded-xl border flex flex-col md:flex-row gap-4 items-center shadow-sm">
+                    <div class="w-full md:w-1/4"><b>${v.hebrew}</b> <span class="text-gray-400">(${v.english})</span></div>
+                    <input type="text" id="phonetic-input-${v.id}" value="${v.phonetics.join(', ')}" class="flex-1 p-2 border rounded text-center">
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <button onclick="updatePhonetics('${v.id}')" class="flex-1 bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition">שמור</button>
+                        <button onclick="deleteWord('${v.id}')" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderTomWords() {
+            const container = document.getElementById('tom-words-list');
+            container.innerHTML = vocabularyList.map(v => `
+                <div class="bg-white p-4 rounded-xl border-b-4 border-green-400 text-center shadow transform hover:scale-105 transition">
+                    <div class="font-bold text-xl text-gray-800">${v.hebrew}</div>
+                    <div class="text-green-600 font-bold" dir="ltr">${v.english}</div>
+                    <div class="text-xs text-gray-400 mt-2 font-medium" dir="rtl">${v.phonetics.join(', ')}</div>
+                </div>
+            `).join('');
+        }
+
+        // לוגיקת תרגול
+        window.startPractice = async (type) => {
+            if (vocabularyList.length === 0) return showToast("גיא עוד לא הוסיף מילים!", "error");
+            currentPracticeType = type;
+            showView('view-practice');
+            document.getElementById('practice-content').classList.add('hidden');
+            document.getElementById('practice-loading').classList.remove('hidden');
+            document.getElementById('practice-input').value = '';
+
+            if (type === 'words') {
+                currentPracticeData = vocabularyList[Math.floor(Math.random() * vocabularyList.length)];
+                document.getElementById('practice-hebrew').innerText = currentPracticeData.hebrew;
+                document.getElementById('practice-loading').classList.add('hidden');
+                document.getElementById('practice-content').classList.remove('hidden');
+                document.getElementById('practice-input').focus();
+            } else {
+                // תרגול משפטים
+                const words = vocabularyList.map(v => v.english);
+                try {
+                    const res = await callGemini(`Use ONLY these words: [${words.join(', ')}]. Create a very simple English sentence for an 8yo. Return JSON: {"english": "sentence", "hebrew": "translation"}`, "New sentence");
+                    currentPracticeData = { ...res, english: res.english.toLowerCase().replace(/[.,?!]/g, '') };
+                    document.getElementById('practice-hebrew').innerText = currentPracticeData.hebrew;
+                    document.getElementById('practice-loading').classList.add('hidden');
+                    document.getElementById('practice-content').classList.remove('hidden');
+                    document.getElementById('practice-input').focus();
+                } catch (e) {
+                    startPractice('words'); // פולבק למילים
+                }
+            }
+        };
+
+        window.checkAnswer = () => {
+            const input = document.getElementById('practice-input').value.trim();
+            if (!input) return;
+
+            let isCorrect = false;
+            if (currentPracticeType === 'words') {
+                isCorrect = currentPracticeData.phonetics.includes(input);
+            } else {
+                const targetWords = currentPracticeData.english.split(' ');
+                const userWords = input.split(' ');
+                if (targetWords.length === userWords.length) {
+                    isCorrect = targetWords.every((word, idx) => {
+                        const wordInfo = vocabularyList.find(v => v.english === word);
+                        return wordInfo && wordInfo.phonetics.includes(userWords[idx]);
+                    });
+                }
+            }
+
+            if (isCorrect) {
+                showToast("נכון מאוד! כל הכבוד! 🌟", "success");
+                setTimeout(() => startPractice(currentPracticeType), 1500);
+            } else {
+                showToast("לא בדיוק, נסה שוב תום!", "error");
+            }
+        };
+
+        window.showToast = (msg, type) => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // אנטר לבדיקה
+        document.getElementById('practice-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAnswer();
+        });
+    </script>
+</body>
+</html>
