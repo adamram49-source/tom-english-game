@@ -117,7 +117,7 @@
     <!-- פיירבייס וקוד לוגיקה -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
         // הגדרות פיירבייס שלך
@@ -125,7 +125,7 @@
             apiKey: "AIzaSyAkJu6Rzjfhk6EUW1288j4PYxkX-a7XCK8",
             authDomain: "english-tom-learn.firebaseapp.com",
             projectId: "english-tom-learn",
-            databaseURL: "https://english-tom-learn-default-rtdb.firebaseio.com", // ודא שזה ה-URL הנכון שלך
+            databaseURL: "https://english-tom-learn-default-rtdb.firebaseio.com",
             storageBucket: "english-tom-learn.firebasestorage.app",
             messagingSenderId: "105132205957",
             appId: "1:105132205957:web:549bc5ac270758502546ec",
@@ -144,17 +144,39 @@
         let currentPracticeData = null;
         let currentPracticeType = 'words';
 
-        // כניסה אנונימית וטעינת נתונים
-        signInAnonymously(auth).then(() => {
+        // פונקציית טעינת נתונים
+        function setupDataListener() {
             const wordsRef = ref(db, 'vocabulary');
             onValue(wordsRef, (snapshot) => {
                 const data = snapshot.val();
                 vocabularyList = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
                 renderGuyWords();
                 renderTomWords();
-                document.getElementById('word-count-guy').innerText = vocabularyList.length;
+                const countEl = document.getElementById('word-count-guy');
+                if (countEl) countEl.innerText = vocabularyList.length;
+            }, (error) => {
+                console.error("Database Error:", error);
+                showToast("שגיאה בגישה לבסיס הנתונים. ודא שחוקי ה-Rules מוגדרים נכון.", "error");
             });
-        }).catch(err => console.error("Firebase Auth Error:", err));
+        }
+
+        // ניהול מצב התחברות
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Logged in as:", user.uid);
+                setupDataListener();
+            } else {
+                console.log("Attempting anonymous sign-in...");
+                signInAnonymously(auth).catch(err => {
+                    console.error("Auth Error:", err);
+                    if (err.code === 'auth/configuration-not-found') {
+                        showToast("שגיאה: עליך להפעיל 'Anonymous Sign-in' ב-Firebase Console תחת Authentication.", "error");
+                    } else {
+                        showToast("שגיאה בהתחברות למערכת: " + err.message, "error");
+                    }
+                });
+            }
+        });
 
         // ניהול תצוגות
         window.showView = (id) => {
@@ -222,6 +244,7 @@
         // רינדור רשימות
         function renderGuyWords() {
             const container = document.getElementById('guy-words-list');
+            if (!container) return;
             container.innerHTML = vocabularyList.map(v => `
                 <div class="bg-white p-4 rounded-xl border flex flex-col md:flex-row gap-4 items-center shadow-sm">
                     <div class="w-full md:w-1/4"><b>${v.hebrew}</b> <span class="text-gray-400">(${v.english})</span></div>
@@ -236,6 +259,7 @@
 
         function renderTomWords() {
             const container = document.getElementById('tom-words-list');
+            if (!container) return;
             container.innerHTML = vocabularyList.map(v => `
                 <div class="bg-white p-4 rounded-xl border-b-4 border-green-400 text-center shadow transform hover:scale-105 transition">
                     <div class="font-bold text-xl text-gray-800">${v.hebrew}</div>
@@ -261,7 +285,6 @@
                 document.getElementById('practice-content').classList.remove('hidden');
                 document.getElementById('practice-input').focus();
             } else {
-                // תרגול משפטים
                 const words = vocabularyList.map(v => v.english);
                 try {
                     const res = await callGemini(`Use ONLY these words: [${words.join(', ')}]. Create a very simple English sentence for an 8yo. Return JSON: {"english": "sentence", "hebrew": "translation"}`, "New sentence");
@@ -271,7 +294,7 @@
                     document.getElementById('practice-content').classList.remove('hidden');
                     document.getElementById('practice-input').focus();
                 } catch (e) {
-                    startPractice('words'); // פולבק למילים
+                    startPractice('words');
                 }
             }
         };
@@ -316,7 +339,6 @@
             }, 3000);
         };
 
-        // אנטר לבדיקה
         document.getElementById('practice-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') checkAnswer();
         });
