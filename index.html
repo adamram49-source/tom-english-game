@@ -53,15 +53,40 @@
                 <button onclick="showView('view-selection')" class="text-red-500 font-bold mb-4 flex items-center gap-2">
                     <i class="fas fa-sign-out-alt"></i> יציאה
                 </button>
-                <h2 class="text-2xl font-bold mb-4">הוספת מילה בעזרת AI</h2>
-                <div class="flex gap-2">
-                    <input type="text" id="new-word-input" class="flex-1 p-4 border rounded-xl" placeholder="למשל: Apple או שולחן">
-                    <button onclick="addWordAI()" id="btn-add" class="bg-blue-600 text-white px-6 rounded-xl font-bold flex items-center gap-2 min-w-[120px] justify-center">
-                        <span id="btn-text">הוסף</span>
-                        <div id="btn-loader" class="loader hidden"></div>
-                    </button>
+                <h2 class="text-2xl font-bold mb-2">הוספת מילה חדשה</h2>
+                
+                <div class="space-y-4 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <div>
+                        <label class="block text-sm font-bold text-blue-800 mb-1">הקלד מילה (בעברית או אנגלית):</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="new-word-input" class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none" placeholder="למשל: תפוח">
+                            <button onclick="fetchAISuggestion()" id="btn-ai" class="bg-indigo-600 text-white px-4 rounded-lg font-bold flex items-center gap-2">
+                                <span id="ai-btn-text"><i class="fas fa-magic"></i> הצעה מה-AI</span>
+                                <div id="ai-btn-loader" class="loader hidden"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="edit-area" class="space-y-3 pt-2 border-t border-blue-200 mt-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500">המילה בעברית:</label>
+                                <input type="text" id="edit-hebrew" class="w-full p-2 border rounded-lg" placeholder="תפוח">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500">המילה באנגלית:</label>
+                                <input type="text" id="edit-english" class="w-full p-2 border rounded-lg" placeholder="Apple">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500">תשובות אפשריות לתום (הפרד בפסיקים):</label>
+                            <input type="text" id="edit-phonetics" class="w-full p-2 border rounded-lg" placeholder="אפל, apple">
+                        </div>
+                        <button onclick="saveNewWord()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700 transition">שמור מילה לרשימה</button>
+                    </div>
                 </div>
             </div>
+
             <div class="glass-panel p-6">
                 <h3 class="font-bold mb-4 text-gray-700">המילים ששמרת (<span id="count">0</span>)</h3>
                 <div id="guy-list" class="space-y-2"></div>
@@ -86,31 +111,34 @@
             <button onclick="showView('view-tom-dash')" class="text-gray-400 block mb-4">סגור תרגול</button>
             <div id="practice-loading" class="hidden py-10 flex flex-col items-center gap-4">
                 <div class="loader w-10 h-10 border-4"></div>
-                <p class="text-blue-500 font-bold">ה-AI מכין לך שאלה...</p>
+                <p class="text-blue-500 font-bold">מכין לך שאלה...</p>
             </div>
             <div id="practice-content">
                 <h2 id="practice-q" class="text-4xl font-black mb-8 text-blue-900">...</h2>
-                <input type="text" id="practice-input" class="w-full p-4 border-4 border-blue-100 rounded-2xl text-center text-3xl mb-4 focus:outline-none focus:border-blue-400" placeholder="כתוב באנגלית...">
+                <input type="text" id="practice-input" class="w-full p-4 border-4 border-blue-100 rounded-2xl text-center text-3xl mb-4 focus:outline-none focus:border-blue-400" placeholder="כתוב את התשובה...">
                 <button onclick="checkAnswer()" class="w-full bg-green-500 text-white py-6 rounded-2xl font-bold text-2xl shadow-lg active:scale-95 transition">בדוק תשובה!</button>
+                <p class="mt-4 text-gray-400 text-sm italic">רמז: השתמש במילים שגיא לימד אותך</p>
             </div>
         </div>
     </div>
 
     <script>
-        // מפתח ה-API יוזרק לכאן אוטומטית ע"י המערכת
         const apiKey = ""; 
 
         let vocab = JSON.parse(localStorage.getItem('tom_english_vocab') || '{}');
-        let currentWord = null;
+        let currentQuestion = null;
         let pType = 'words';
 
-        // פונקציית עזר לשמירה ל-LocalStorage
+        function removeNikud(text) {
+            if (!text) return "";
+            return text.replace(/[\u0591-\u05C7]/g, "");
+        }
+
         function saveToStorage() {
             localStorage.setItem('tom_english_vocab', JSON.stringify(vocab));
             render();
         }
 
-        // פונקציה לקריאה ל-Gemini AI
         async function callGemini(prompt, systemPrompt, retries = 5) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
@@ -126,86 +154,78 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    if (!response.ok) throw new Error('API Error');
                     const result = await response.json();
-                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    return JSON.parse(text || "{}");
+                    return JSON.parse(result.candidates[0].content.parts[0].text);
                 } catch (e) {
                     if (i === retries - 1) throw e;
-                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                    await new Promise(r => setTimeout(r, 1000));
                 }
             }
         }
 
-        window.addWordAI = async () => {
+        window.fetchAISuggestion = async () => {
             const input = document.getElementById('new-word-input').value.trim();
             if (!input) return;
-
-            document.getElementById('btn-loader').classList.remove('hidden');
-            document.getElementById('btn-text').classList.add('hidden');
-
-            const systemPrompt = `You are an English teacher for an 8-year-old Israeli boy. 
-            Analyze the user input (Hebrew or English). 
-            Return ONLY JSON: {"english": "Word", "hebrew": "תרגום לעברית", "phonetics": ["פונטיקה בעברית כמו שזה נשמע"]}.
-            Example: {"english": "Apple", "hebrew": "תפוח", "phonetics": ["אפל"]}`;
+            document.getElementById('ai-btn-loader').classList.remove('hidden');
+            document.getElementById('ai-btn-text').classList.add('hidden');
 
             try {
-                const result = await callGemini(input, systemPrompt);
-                if (!result.english) throw new Error("Invalid response");
-
-                const wordId = result.english.toLowerCase().replace(/[^a-z]/g, '');
-                vocab[wordId] = result;
-                
-                saveToStorage();
-                document.getElementById('new-word-input').value = "";
-                showToast("המילה נוספה בהצלחה!", "bg-green-500");
+                const res = await callGemini(input, "Return JSON: {english, hebrew, phonetics: [hebrew_sounds]}. NO NIKUD.");
+                document.getElementById('edit-hebrew').value = res.hebrew;
+                document.getElementById('edit-english').value = res.english;
+                document.getElementById('edit-phonetics').value = res.phonetics.join(', ');
             } catch (e) {
-                console.error(e);
-                showToast("שגיאה בחיבור ל-AI", "bg-red-500");
+                showToast("שגיאה ב-AI", "bg-red-500");
             } finally {
-                document.getElementById('btn-loader').classList.add('hidden');
-                document.getElementById('btn-text').classList.remove('hidden');
+                document.getElementById('ai-btn-loader').classList.add('hidden');
+                document.getElementById('ai-btn-text').classList.remove('hidden');
             }
         };
 
-        window.deleteWord = (id) => {
-            if (confirm('בטוח שרוצים למחוק?')) {
-                delete vocab[id];
-                saveToStorage();
-            }
+        window.saveNewWord = () => {
+            const heb = document.getElementById('edit-hebrew').value.trim();
+            const eng = document.getElementById('edit-english').value.trim();
+            const phons = document.getElementById('edit-phonetics').value.split(',').map(p => removeNikud(p.trim().toLowerCase())).filter(p => p);
+            if (!heb || !eng || phons.length === 0) return;
+
+            vocab[eng.toLowerCase()] = { hebrew: heb, english: eng, phonetics: phons };
+            saveToStorage();
+            ['new-word-input', 'edit-hebrew', 'edit-english', 'edit-phonetics'].forEach(id => document.getElementById(id).value = "");
+            showToast("נשמר!", "bg-green-500");
         };
+
+        window.deleteWord = (id) => { delete vocab[id]; saveToStorage(); };
 
         function render() {
             const list = Object.entries(vocab);
             document.getElementById('count').innerText = list.length;
-            
-            // רשימת גיא
-            document.getElementById('guy-list').innerHTML = list.length ? list.map(([id, w]) => `
-                <div class="flex items-center justify-between p-3 border rounded-xl bg-gray-50">
-                    <div class="text-right">
-                        <span class="font-bold text-lg">${w.hebrew}</span>
-                        <span class="text-gray-400 mr-2" dir="ltr">(${w.english})</span>
+            const guyList = document.getElementById('guy-list');
+            if (guyList) {
+                guyList.innerHTML = list.map(([id, w]) => `
+                    <div class="flex items-center justify-between p-3 border rounded-xl bg-gray-50">
+                        <div class="text-right">
+                            <span class="font-bold">${w.hebrew}</span>
+                            <span class="text-xs text-gray-400 mr-2">(${w.english})</span>
+                            <div class="text-[10px] text-blue-400">תשובה נכונה: ${w.phonetics[0]}</div>
+                        </div>
+                        <button onclick="deleteWord('${id}')" class="text-red-400"><i class="fas fa-trash"></i></button>
                     </div>
-                    <button onclick="deleteWord('${id}')" class="text-red-400 hover:text-red-600 p-2"><i class="fas fa-trash"></i></button>
-                </div>
-            `).join('') : '<p class="text-center text-gray-400 py-4">עוד לא הוספת מילים...</p>';
-
-            // רשימת תום
-            document.getElementById('tom-list').innerHTML = list.map(([id, w]) => `
-                <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-b-4 border-green-300">
-                    <div class="font-bold text-xl text-gray-800">${w.hebrew}</div>
-                    <div class="text-green-600 font-bold uppercase tracking-wider">${w.english}</div>
-                </div>
-            `).join('');
+                `).join('');
+            }
+            const tomList = document.getElementById('tom-list');
+            if (tomList) {
+                tomList.innerHTML = list.map(([id, w]) => `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-b-4 border-green-300">
+                        <div class="font-bold text-xl">${w.hebrew}</div>
+                        <div class="text-green-600 font-bold">${w.phonetics[0]}</div>
+                    </div>
+                `).join('');
+            }
         }
 
         window.startPractice = async (type) => {
             const words = Object.values(vocab);
-            if (words.length === 0) {
-                showToast("גיא צריך להוסיף מילים קודם!", "bg-orange-500");
-                return;
-            }
-            
+            if (!words.length) return showToast("אין מילים ברשימה", "bg-orange-500");
             pType = type;
             showView('view-practice');
             document.getElementById('practice-input').value = "";
@@ -213,24 +233,31 @@
             document.getElementById('practice-loading').classList.remove('hidden');
 
             if (type === 'words') {
-                currentWord = words[Math.floor(Math.random() * words.length)];
-                document.getElementById('practice-q').innerText = currentWord.hebrew;
+                const w = words[Math.floor(Math.random() * words.length)];
+                currentQuestion = { q: w.hebrew, answers: w.phonetics };
+                document.getElementById('practice-q').innerText = currentQuestion.q;
                 document.getElementById('practice-loading').classList.add('hidden');
                 document.getElementById('practice-content').classList.remove('hidden');
             } else {
                 try {
-                    const wordList = words.map(w => w.english).join(', ');
-                    const sys = `Create a very short English sentence (3-4 words) for a child using some of these words: ${wordList}. 
-                    Return ONLY JSON: {"english": "Sentence", "hebrew": "תרגום לעברית"}`;
+                    // יוצרים רשימה של המילים שגיא הכניס (עברית ואנגלית)
+                    const mapping = words.map(w => `${w.hebrew}=${w.english}`).join(', ');
+                    const sys = `Create a short Hebrew sentence using ONLY these Hebrew words: [${words.map(w => w.hebrew).join(', ')}].
+                    Return JSON: {"hebrew_sentence": "כלב כלב", "english_words_used": ["dog", "dog"]}.
+                    The "english_words_used" must match the keys in our vocab.`;
+                    
                     const res = await callGemini("create sentence", sys);
                     
-                    // לצורך הבדיקה בתרגול משפטים, אנחנו מצפים שהתשובה תהיה באנגלית
-                    currentWord = { ...res, phonetics: [res.english] }; 
-                    document.getElementById('practice-q').innerText = res.hebrew;
+                    // בניית התשובה הנכונה לפי מה שגיא הגדיר לכל מילה בנפרד
+                    const correctPhonetics = res.english_words_used.map(engKey => {
+                        const wordData = vocab[engKey.toLowerCase()];
+                        return wordData ? wordData.phonetics[0] : "";
+                    }).filter(p => p).join(' ');
+
+                    currentQuestion = { q: res.hebrew_sentence, answers: [correctPhonetics] };
+                    document.getElementById('practice-q').innerText = currentQuestion.q;
                 } catch (e) {
-                    showToast("שגיאה ביצירת משפט, חוזר למילים", "bg-red-500");
                     startPractice('words');
-                    return;
                 } finally {
                     document.getElementById('practice-loading').classList.add('hidden');
                     document.getElementById('practice-content').classList.remove('hidden');
@@ -239,25 +266,20 @@
         };
 
         window.checkAnswer = () => {
-            const val = document.getElementById('practice-input').value.trim().toLowerCase();
-            if (!val || !currentWord) return;
+            const val = removeNikud(document.getElementById('practice-input').value.trim()).toLowerCase();
+            if (!val || !currentQuestion) return;
 
-            // בדיקה האם התשובה תואמת למילה באנגלית או לאחד מהקירובים הפונטיים (אם קיימים)
-            const isCorrect = (val === currentWord.english.toLowerCase()) || 
-                              (currentWord.phonetics && currentWord.phonetics.some(p => p === val));
-            
+            const isCorrect = currentQuestion.answers.some(a => removeNikud(a).toLowerCase() === val);
             if (isCorrect) {
-                showToast("כל הכבוד תום! 🏆", "bg-green-500");
-                setTimeout(() => startPractice(pType), 1200);
+                showToast("כל הכבוד! 🏆", "bg-green-500");
+                setTimeout(() => startPractice(pType), 1000);
             } else {
-                showToast("לא בדיוק, נסה שוב 💪", "bg-orange-500");
+                showToast("לא בדיוק, נסה שוב", "bg-orange-500");
             }
         };
 
         window.showView = (id) => {
-            ['view-selection', 'view-guy-login', 'view-guy-dash', 'view-tom-dash', 'view-practice'].forEach(v => {
-                document.getElementById(v).classList.add('hidden');
-            });
+            ['view-selection', 'view-guy-login', 'view-guy-dash', 'view-tom-dash', 'view-practice'].forEach(v => document.getElementById(v).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         };
 
@@ -265,9 +287,7 @@
             if (document.getElementById('guy-password').value === '5312') {
                 showView('view-guy-dash');
                 document.getElementById('guy-password').value = "";
-            } else {
-                showToast('סיסמה שגויה', 'bg-red-500');
-            }
+            } else showToast('סיסמה שגויה', 'bg-red-500');
         };
 
         function showToast(msg, color) {
@@ -276,22 +296,9 @@
             t.className = `toast show ${color} shadow-lg`;
             t.innerText = msg;
             container.appendChild(t);
-            setTimeout(() => { 
-                t.classList.remove('show');
-                setTimeout(() => t.remove(), 300);
-            }, 3000);
+            setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
         }
 
-        // האזנה ל-Enter
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                if (!document.getElementById('view-guy-login').classList.contains('hidden')) window.verifyGuy();
-                else if (!document.getElementById('view-guy-dash').classList.contains('hidden')) window.addWordAI();
-                else if (!document.getElementById('view-practice').classList.contains('hidden')) window.checkAnswer();
-            }
-        });
-
-        // אתחול רשימה ראשונית
         render();
     </script>
 </body>
