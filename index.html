@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>האנגלית של תום וגיא - גרסה מקומית</title>
+    <title>האנגלית של תום וגיא - גרסה מאובטחת</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -25,10 +25,23 @@
     <div class="w-full max-w-4xl">
         <header class="text-center mb-8">
             <h1 class="text-5xl font-black text-blue-600 mb-2">האנגלית של תום</h1>
-            <div class="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-[10px] font-bold text-blue-600 uppercase">
-                <i class="fas fa-hdd ml-1"></i> שמירה מקומית על המחשב
+            <div id="key-status" class="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-[10px] font-bold text-red-600 uppercase cursor-pointer" onclick="showKeyModal()">
+                <i class="fas fa-key ml-1"></i> סטטוס מפתח: חסר (לחץ להזנה)
             </div>
         </header>
+
+        <!-- מודל להזנת מפתח API -->
+        <div id="modal-key" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] hidden">
+            <div class="glass-panel p-8 max-w-sm w-full mx-4 text-center">
+                <h2 class="text-xl font-bold mb-4">הגדרת מפתח AI</h2>
+                <p class="text-sm text-gray-500 mb-4">המפתח נשמר במחשב זה בלבד ולא נשלח לגיטהאב.</p>
+                <input type="password" id="api-key-input" class="w-full p-3 border rounded-xl mb-4 text-center" placeholder="הדבק כאן את המפתח">
+                <div class="flex gap-2">
+                    <button onclick="saveApiKey()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">שמור</button>
+                    <button onclick="hideKeyModal()" class="flex-1 bg-gray-200 py-2 rounded-lg">סגור</button>
+                </div>
+            </div>
+        </div>
 
         <!-- מסך בחירה -->
         <div id="view-selection" class="glass-panel p-8 text-center space-y-6">
@@ -123,7 +136,8 @@
     </div>
 
     <script>
-        const apiKey = ""; 
+        // ניהול מפתח ה-API דרך LocalStorage כדי שלא יימחק על ידי גיטהאב
+        let apiKey = localStorage.getItem('google_gemini_key') || "";
 
         let vocab = JSON.parse(localStorage.getItem('tom_english_vocab') || '{}');
         let currentQuestion = null;
@@ -134,13 +148,42 @@
             return text.replace(/[\u0591-\u05C7]/g, "");
         }
 
+        function saveApiKey() {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (key) {
+                apiKey = key;
+                localStorage.setItem('google_gemini_key', key);
+                updateKeyStatus();
+                hideKeyModal();
+                showToast("המפתח נשמר!", "bg-green-500");
+            }
+        }
+
+        function updateKeyStatus() {
+            const status = document.getElementById('key-status');
+            if (apiKey) {
+                status.innerHTML = '<i class="fas fa-check-circle ml-1"></i> המפתח מוגדר';
+                status.className = 'inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-[10px] font-bold text-green-600 uppercase cursor-pointer';
+            } else {
+                status.innerHTML = '<i class="fas fa-key ml-1"></i> סטטוס מפתח: חסר (לחץ להזנה)';
+                status.className = 'inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-[10px] font-bold text-red-600 uppercase cursor-pointer';
+            }
+        }
+
+        window.showKeyModal = () => document.getElementById('modal-key').classList.remove('hidden');
+        window.hideKeyModal = () => document.getElementById('modal-key').classList.add('hidden');
+
         function saveToStorage() {
             localStorage.setItem('tom_english_vocab', JSON.stringify(vocab));
             render();
         }
 
         async function callGemini(prompt, systemPrompt, retries = 5) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            if (!apiKey) {
+                showKeyModal();
+                throw new Error("Missing API Key");
+            }
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -154,6 +197,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
+                    if (!response.ok) throw new Error("API call failed");
                     const result = await response.json();
                     return JSON.parse(result.candidates[0].content.parts[0].text);
                 } catch (e) {
@@ -175,7 +219,7 @@
                 document.getElementById('edit-english').value = res.english;
                 document.getElementById('edit-phonetics').value = res.phonetics.join(', ');
             } catch (e) {
-                showToast("שגיאה ב-AI", "bg-red-500");
+                showToast("שגיאה ב-AI - בדוק את המפתח", "bg-red-500");
             } finally {
                 document.getElementById('ai-btn-loader').classList.add('hidden');
                 document.getElementById('ai-btn-text').classList.remove('hidden');
@@ -240,21 +284,18 @@
                 document.getElementById('practice-content').classList.remove('hidden');
             } else {
                 try {
-                    // יוצרים רשימה של המילים שגיא הכניס (עברית ואנגלית)
-                    const mapping = words.map(w => `${w.hebrew}=${w.english}`).join(', ');
                     const sys = `Create a short Hebrew sentence using ONLY these Hebrew words: [${words.map(w => w.hebrew).join(', ')}].
-                    Return JSON: {"hebrew_sentence": "כלב כלב", "english_words_used": ["dog", "dog"]}.
-                    The "english_words_used" must match the keys in our vocab.`;
+                    Return JSON: {"hebrew_sentence": "Hebrew Sentence", "english_words_used": ["word1_key", "word2_key"]}.`;
                     
                     const res = await callGemini("create sentence", sys);
                     
-                    // בניית התשובה הנכונה לפי מה שגיא הגדיר לכל מילה בנפרד
-                    const correctPhonetics = res.english_words_used.map(engKey => {
+                    // בניית התשובה הנכונה: עוברים מילה-מילה ומושכים את התשובה הראשונה שגיא הגדיר
+                    const correctSentencePhonetics = res.english_words_used.map(engKey => {
                         const wordData = vocab[engKey.toLowerCase()];
                         return wordData ? wordData.phonetics[0] : "";
                     }).filter(p => p).join(' ');
 
-                    currentQuestion = { q: res.hebrew_sentence, answers: [correctPhonetics] };
+                    currentQuestion = { q: res.hebrew_sentence, answers: [correctSentencePhonetics] };
                     document.getElementById('practice-q').innerText = currentQuestion.q;
                 } catch (e) {
                     startPractice('words');
@@ -269,6 +310,7 @@
             const val = removeNikud(document.getElementById('practice-input').value.trim()).toLowerCase();
             if (!val || !currentQuestion) return;
 
+            // השוואה נקייה מניקוד מול רשימת התשובות
             const isCorrect = currentQuestion.answers.some(a => removeNikud(a).toLowerCase() === val);
             if (isCorrect) {
                 showToast("כל הכבוד! 🏆", "bg-green-500");
@@ -299,6 +341,7 @@
             setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
         }
 
+        updateKeyStatus();
         render();
     </script>
 </body>
