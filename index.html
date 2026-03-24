@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>האנגלית של תום וגיא - גרסה מאובטחת</title>
+    <title>האנגלית של תום - רווחים אוטומטיים</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -14,41 +14,32 @@
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; }
         .toast { padding: 1rem; border-radius: 1rem; color: white; font-weight: bold; opacity: 0; transition: 0.3s; transform: translateY(-20px); }
         .toast.show { opacity: 1; transform: translateY(0); }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-active { border-bottom: 4px solid #4f46e5; color: #4f46e5; font-weight: bold; }
+        .word-token { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.5rem; border-radius: 0.375rem; margin: 0 0.1rem; font-weight: bold; }
+        #sentence-builder-box:focus { outline: 2px solid #6366f1; background-color: #fefeff; }
+        #connection-status { position: fixed; bottom: 10px; left: 10px; font-size: 0.75rem; font-weight: bold; padding: 0.25rem 0.75rem; border-radius: 1rem; z-index: 50; }
+        .status-offline { background: #fee2e2; color: #dc2626; }
+        .status-online { background: #dcfce7; color: #16a34a; }
+        .whitespace-pre { white-space: pre-wrap; word-break: break-all; }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
 
     <div id="toast-container"></div>
+    <div id="connection-status" class="status-offline shadow-md"><i class="fas fa-wifi"></i> מתחבר לשרת...</div>
 
     <div class="w-full max-w-4xl">
         <header class="text-center mb-8">
             <h1 class="text-5xl font-black text-blue-600 mb-2">האנגלית של תום</h1>
-            <div id="key-status" class="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-[10px] font-bold text-red-600 uppercase cursor-pointer" onclick="showKeyModal()">
-                <i class="fas fa-key ml-1"></i> סטטוס מפתח: חסר (לחץ להזנה)
-            </div>
+            <p class="text-gray-500 font-bold">לומדים ומתרגלים ביחד</p>
         </header>
-
-        <!-- מודל להזנת מפתח API -->
-        <div id="modal-key" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] hidden">
-            <div class="glass-panel p-8 max-w-sm w-full mx-4 text-center">
-                <h2 class="text-xl font-bold mb-4">הגדרת מפתח AI</h2>
-                <p class="text-sm text-gray-500 mb-4">המפתח נשמר במחשב זה בלבד ולא נשלח לגיטהאב.</p>
-                <input type="password" id="api-key-input" class="w-full p-3 border rounded-xl mb-4 text-center" placeholder="הדבק כאן את המפתח">
-                <div class="flex gap-2">
-                    <button onclick="saveApiKey()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">שמור</button>
-                    <button onclick="hideKeyModal()" class="flex-1 bg-gray-200 py-2 rounded-lg">סגור</button>
-                </div>
-            </div>
-        </div>
 
         <!-- מסך בחירה -->
         <div id="view-selection" class="glass-panel p-8 text-center space-y-6">
             <h2 class="text-2xl font-bold">מי נכנס למערכת?</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button onclick="showView('view-guy-login')" class="bg-indigo-500 text-white p-6 rounded-2xl font-bold text-xl hover:bg-indigo-600 transition shadow-lg">גיא (מנהל)</button>
-                <button onclick="showView('view-tom-dash')" class="bg-green-500 text-white p-6 rounded-2xl font-bold text-xl hover:bg-green-600 transition shadow-lg">תום (שחקן)</button>
+                <button onclick="window.showView('view-guy-login')" class="bg-indigo-500 text-white p-6 rounded-2xl font-bold text-xl hover:bg-indigo-600 transition shadow-lg">גיא (מנהל)</button>
+                <button onclick="window.showView('view-tom-dash')" class="bg-green-500 text-white p-6 rounded-2xl font-bold text-xl hover:bg-green-600 transition shadow-lg">תום (שחקן)</button>
             </div>
         </div>
 
@@ -56,281 +47,181 @@
         <div id="view-guy-login" class="glass-panel p-8 text-center max-w-md mx-auto hidden">
             <h2 class="text-2xl font-bold mb-4">סיסמת מנהל</h2>
             <input type="password" id="guy-password" class="w-full p-4 border rounded-xl mb-4 text-center text-2xl" placeholder="סיסמה">
-            <button onclick="verifyGuy()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold">היכנס</button>
-            <button onclick="showView('view-selection')" class="mt-4 text-gray-400 block w-full">ביטול</button>
+            <button onclick="window.verifyGuy()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-md hover:bg-indigo-700 transition">היכנס</button>
+            <button onclick="window.showView('view-selection')" class="mt-4 text-gray-400 block w-full">ביטול</button>
         </div>
 
         <!-- דאשבורד גיא -->
-        <div id="view-guy-dash" class="hidden space-y-4">
-            <div class="glass-panel p-6">
-                <button onclick="showView('view-selection')" class="text-red-500 font-bold mb-4 flex items-center gap-2">
+        <div id="view-guy-dash" class="hidden glass-panel overflow-hidden">
+            <!-- ניווט גיא -->
+            <div class="bg-gray-50 p-4 border-b flex justify-between items-center">
+                <div class="flex gap-4">
+                    <button onclick="window.switchGuyTab('words')" id="tab-words" class="px-4 py-2 text-lg tab-active transition">ניהול מילים</button>
+                    <button onclick="window.switchGuyTab('sentences')" id="tab-sentences" class="px-4 py-2 text-lg text-gray-500 transition">ניהול משפטים</button>
+                </div>
+                <button onclick="window.showView('view-selection')" class="text-red-500 font-bold flex items-center gap-2 px-4 py-2 hover:bg-red-50 rounded-lg transition">
                     <i class="fas fa-sign-out-alt"></i> יציאה
                 </button>
-                <h2 class="text-2xl font-bold mb-2">הוספת מילה חדשה</h2>
-                
-                <div class="space-y-4 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <div>
-                        <label class="block text-sm font-bold text-blue-800 mb-1">הקלד מילה (בעברית או אנגלית):</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="new-word-input" class="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none" placeholder="למשל: תפוח">
-                            <button onclick="fetchAISuggestion()" id="btn-ai" class="bg-indigo-600 text-white px-4 rounded-lg font-bold flex items-center gap-2">
-                                <span id="ai-btn-text"><i class="fas fa-magic"></i> הצעה מה-AI</span>
-                                <div id="ai-btn-loader" class="loader hidden"></div>
-                            </button>
-                        </div>
-                    </div>
+            </div>
 
-                    <div id="edit-area" class="space-y-3 pt-2 border-t border-blue-200 mt-2">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500">המילה בעברית:</label>
-                                <input type="text" id="edit-hebrew" class="w-full p-2 border rounded-lg" placeholder="תפוח">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500">המילה באנגלית:</label>
-                                <input type="text" id="edit-english" class="w-full p-2 border rounded-lg" placeholder="Apple">
-                            </div>
+            <!-- לשונית מילים -->
+            <div id="guy-tab-words" class="p-6 space-y-8">
+                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                    <h3 id="word-form-title" class="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle"></i> הוספת מילה חדשה</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">המילה בעברית:</label>
+                            <input type="text" id="edit-hebrew" class="w-full p-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-400 outline-none" placeholder="למשל: תפוח">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500">תשובות אפשריות לתום (הפרד בפסיקים):</label>
-                            <input type="text" id="edit-phonetics" class="w-full p-2 border rounded-lg" placeholder="אפל, apple">
+                            <label class="block text-sm font-bold text-gray-700 mb-1">המילה באנגלית:</label>
+                            <input type="text" id="edit-english" dir="ltr" class="w-full p-3 border rounded-xl shadow-sm text-left focus:ring-2 focus:ring-blue-400 outline-none" placeholder="Apple">
                         </div>
-                        <button onclick="saveNewWord()" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700 transition">שמור מילה לרשימה</button>
                     </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">תשובות אפשריות לתום (הפרד בפסיקים):</label>
+                        <input type="text" id="edit-phonetics" class="w-full p-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-400 outline-none" placeholder="למשל: אפל, apple">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.saveWord()" id="btn-save-word" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-green-700 transition">שמור מילה</button>
+                        <button onclick="window.cancelWordEdit()" id="btn-cancel-word" class="hidden px-6 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-400 transition">ביטול עריכה</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold mb-4 text-gray-700 border-b pb-2">אוצר המילים של תום (<span id="words-count">0</span> מילים)</h3>
+                    <div id="guy-words-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
                 </div>
             </div>
 
-            <div class="glass-panel p-6">
-                <h3 class="font-bold mb-4 text-gray-700">המילים ששמרת (<span id="count">0</span>)</h3>
-                <div id="guy-list" class="space-y-2"></div>
+            <!-- לשונית משפטים -->
+            <div id="guy-tab-sentences" class="p-6 space-y-8 hidden">
+                <div class="bg-purple-50 p-6 rounded-2xl border border-purple-100">
+                    <h3 class="text-xl font-bold text-purple-800 mb-4 flex items-center gap-2"><i class="fas fa-layer-group"></i> הרכבת משפט לתום</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">המשפט בעברית (מה שתום יראה):</label>
+                            <input type="text" id="sentence-hebrew-prompt" class="w-full p-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-purple-400 outline-none" placeholder="למשל: אני אוהב תפוחים!">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">בנה את התשובה באנגלית (רווחים מתווספים אוטומטית):</label>
+                            <p class="text-xs text-gray-500 mb-2">לחץ על המילים למטה. רווחים מתווספים לבד. אם תרצה להוסיף סימן פיסוק (?!,), פשוט הקלד אותו.</p>
+                            
+                            <div id="sentence-builder-box" class="min-h-[60px] p-4 border-2 border-dashed border-purple-400 rounded-xl bg-white text-left flex flex-wrap items-center gap-0 cursor-text text-xl" tabindex="0">
+                                <!-- Tokens here -->
+                            </div>
+                            
+                            <div class="mt-4 p-4 bg-white border rounded-xl shadow-sm">
+                                <span class="text-xs font-bold text-gray-400 block mb-2">אוצר המילים (לחץ להוספה):</span>
+                                <div id="builder-vocab-list" class="flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="window.saveSentence()" class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-purple-700 transition mt-4">שמור משפט לתרגול</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold mb-4 text-gray-700 border-b pb-2">המשפטים ששמרת (<span id="sentences-count">0</span>)</h3>
+                    <div id="guy-sentences-list" class="space-y-3"></div>
+                </div>
             </div>
         </div>
 
         <!-- דאשבורד תום -->
         <div id="view-tom-dash" class="hidden space-y-4">
             <div class="glass-panel p-8 text-center">
-                <button onclick="showView('view-selection')" class="text-gray-400 block mb-4">חזרה</button>
+                <button onclick="window.showView('view-selection')" class="text-gray-400 block mb-4 hover:text-gray-600 transition"><i class="fas fa-arrow-right"></i> חזרה</button>
                 <h2 class="text-3xl font-black text-green-600">היי תום! מה נלמד היום?</h2>
                 <div class="grid grid-cols-2 gap-4 mt-6">
-                    <button onclick="startPractice('words')" class="bg-blue-500 text-white p-6 rounded-2xl font-bold shadow-md hover:scale-105 transition">תרגול מילים</button>
-                    <button onclick="startPractice('sentences')" class="bg-purple-500 text-white p-6 rounded-2xl font-bold shadow-md hover:scale-105 transition">תרגול משפטים</button>
+                    <button onclick="window.startPractice('words')" class="bg-blue-500 text-white p-6 rounded-2xl font-bold text-xl shadow-md hover:scale-105 transition flex flex-col items-center gap-2">
+                        <i class="fas fa-font text-3xl"></i> תרגול מילים
+                    </button>
+                    <button onclick="window.startPractice('sentences')" class="bg-purple-500 text-white p-6 rounded-2xl font-bold text-xl shadow-md hover:scale-105 transition flex flex-col items-center gap-2">
+                        <i class="fas fa-align-left text-3xl"></i> תרגול משפטים
+                    </button>
                 </div>
             </div>
-            <div id="tom-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            
+            <div class="glass-panel p-6">
+                <h3 class="font-bold text-gray-500 mb-4 text-center">המילים שלמדת:</h3>
+                <div id="tom-words-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
         </div>
 
         <!-- תרגול -->
         <div id="view-practice" class="glass-panel p-8 text-center hidden">
-            <button onclick="showView('view-tom-dash')" class="text-gray-400 block mb-4">סגור תרגול</button>
-            <div id="practice-loading" class="hidden py-10 flex flex-col items-center gap-4">
-                <div class="loader w-10 h-10 border-4"></div>
-                <p class="text-blue-500 font-bold">מכין לך שאלה...</p>
-            </div>
+            <button onclick="window.showView('view-tom-dash')" class="text-gray-400 block mb-4 hover:text-gray-600 transition"><i class="fas fa-arrow-right"></i> סגור תרגול</button>
             <div id="practice-content">
-                <h2 id="practice-q" class="text-4xl font-black mb-8 text-blue-900">...</h2>
-                <input type="text" id="practice-input" class="w-full p-4 border-4 border-blue-100 rounded-2xl text-center text-3xl mb-4 focus:outline-none focus:border-blue-400" placeholder="כתוב את התשובה...">
-                <button onclick="checkAnswer()" class="w-full bg-green-500 text-white py-6 rounded-2xl font-bold text-2xl shadow-lg active:scale-95 transition">בדוק תשובה!</button>
-                <p class="mt-4 text-gray-400 text-sm italic">רמז: השתמש במילים שגיא לימד אותך</p>
+                <div class="mb-4 inline-block px-4 py-1 rounded-full bg-gray-100 text-sm font-bold text-gray-500" id="practice-type-label"></div>
+                <h2 id="practice-q" class="text-4xl font-black mb-8 text-blue-900 leading-tight">...</h2>
+                <input type="text" id="practice-input" dir="ltr" class="w-full p-4 border-4 border-blue-100 rounded-2xl text-center text-3xl mb-4 focus:outline-none focus:border-blue-400 transition" placeholder="כתוב את התשובה...">
+                <button onclick="window.checkAnswer()" class="w-full bg-green-500 text-white py-6 rounded-2xl font-bold text-2xl shadow-lg active:scale-95 transition">בדוק תשובה!</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // ניהול מפתח ה-API דרך LocalStorage כדי שלא יימחק על ידי גיטהאב
-        let apiKey = localStorage.getItem('google_gemini_key') || "";
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-        let vocab = JSON.parse(localStorage.getItem('tom_english_vocab') || '{}');
-        let currentQuestion = null;
-        let pType = 'words';
+        const firebaseConfig = {
+            apiKey: "AIzaSyAkJu6Rzjfhk6EUW1288j4PYxkX-a7XCK8",
+            authDomain: "english-tom-learn.firebaseapp.com",
+            projectId: "english-tom-learn",
+            storageBucket: "english-tom-learn.firebasestorage.app",
+            messagingSenderId: "105132205957",
+            appId: "1:105132205957:web:549bc5ac270758502546ec",
+            measurementId: "G-BTP8V1Y2C2",
+            databaseURL: "https://english-tom-learn-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let vocab = {};
+        let sentences = {};
+        let editingWordId = null;
+        let currentSentenceBuilder = [];
+        let practiceMode = null;
+        let currentQuestionObj = null;
+
+        const connectionStatus = document.getElementById('connection-status');
+        
+        signInAnonymously(auth).catch(() => showToast("שגיאת התחברות", "bg-red-500"));
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                connectionStatus.className = 'status-online shadow-md';
+                connectionStatus.innerHTML = '<i class="fas fa-check-circle"></i> מסונכרן';
+                
+                onValue(ref(db, 'vocabulary'), (snapshot) => {
+                    vocab = snapshot.val() || {};
+                    renderGuyWords();
+                    renderTomWords();
+                    renderBuilderVocab();
+                });
+
+                onValue(ref(db, 'sentences'), (snapshot) => {
+                    sentences = snapshot.val() || {};
+                    renderGuySentences();
+                });
+            }
+        });
 
         function removeNikud(text) {
-            if (!text) return "";
-            return text.replace(/[\u0591-\u05C7]/g, "");
+            return text ? text.replace(/[\u0591-\u05C7]/g, "") : "";
         }
 
-        function saveApiKey() {
-            const key = document.getElementById('api-key-input').value.trim();
-            if (key) {
-                apiKey = key;
-                localStorage.setItem('google_gemini_key', key);
-                updateKeyStatus();
-                hideKeyModal();
-                showToast("המפתח נשמר!", "bg-green-500");
-            }
+        function normalizeText(text) {
+            // Normalize spaces too: replace multiple spaces with single one
+            return removeNikud(text).toLowerCase().replace(/[^\w\sא-ת]/g, '').replace(/\s+/g, ' ').trim();
         }
-
-        function updateKeyStatus() {
-            const status = document.getElementById('key-status');
-            if (apiKey) {
-                status.innerHTML = '<i class="fas fa-check-circle ml-1"></i> המפתח מוגדר';
-                status.className = 'inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-[10px] font-bold text-green-600 uppercase cursor-pointer';
-            } else {
-                status.innerHTML = '<i class="fas fa-key ml-1"></i> סטטוס מפתח: חסר (לחץ להזנה)';
-                status.className = 'inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-[10px] font-bold text-red-600 uppercase cursor-pointer';
-            }
-        }
-
-        window.showKeyModal = () => document.getElementById('modal-key').classList.remove('hidden');
-        window.hideKeyModal = () => document.getElementById('modal-key').classList.add('hidden');
-
-        function saveToStorage() {
-            localStorage.setItem('tom_english_vocab', JSON.stringify(vocab));
-            render();
-        }
-
-        async function callGemini(prompt, systemPrompt, retries = 5) {
-            if (!apiKey) {
-                showKeyModal();
-                throw new Error("Missing API Key");
-            }
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json" }
-            };
-
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error("API call failed");
-                    const result = await response.json();
-                    return JSON.parse(result.candidates[0].content.parts[0].text);
-                } catch (e) {
-                    if (i === retries - 1) throw e;
-                    await new Promise(r => setTimeout(r, 1000));
-                }
-            }
-        }
-
-        window.fetchAISuggestion = async () => {
-            const input = document.getElementById('new-word-input').value.trim();
-            if (!input) return;
-            document.getElementById('ai-btn-loader').classList.remove('hidden');
-            document.getElementById('ai-btn-text').classList.add('hidden');
-
-            try {
-                const res = await callGemini(input, "Return JSON: {english, hebrew, phonetics: [hebrew_sounds]}. NO NIKUD.");
-                document.getElementById('edit-hebrew').value = res.hebrew;
-                document.getElementById('edit-english').value = res.english;
-                document.getElementById('edit-phonetics').value = res.phonetics.join(', ');
-            } catch (e) {
-                showToast("שגיאה ב-AI - בדוק את המפתח", "bg-red-500");
-            } finally {
-                document.getElementById('ai-btn-loader').classList.add('hidden');
-                document.getElementById('ai-btn-text').classList.remove('hidden');
-            }
-        };
-
-        window.saveNewWord = () => {
-            const heb = document.getElementById('edit-hebrew').value.trim();
-            const eng = document.getElementById('edit-english').value.trim();
-            const phons = document.getElementById('edit-phonetics').value.split(',').map(p => removeNikud(p.trim().toLowerCase())).filter(p => p);
-            if (!heb || !eng || phons.length === 0) return;
-
-            vocab[eng.toLowerCase()] = { hebrew: heb, english: eng, phonetics: phons };
-            saveToStorage();
-            ['new-word-input', 'edit-hebrew', 'edit-english', 'edit-phonetics'].forEach(id => document.getElementById(id).value = "");
-            showToast("נשמר!", "bg-green-500");
-        };
-
-        window.deleteWord = (id) => { delete vocab[id]; saveToStorage(); };
-
-        function render() {
-            const list = Object.entries(vocab);
-            document.getElementById('count').innerText = list.length;
-            const guyList = document.getElementById('guy-list');
-            if (guyList) {
-                guyList.innerHTML = list.map(([id, w]) => `
-                    <div class="flex items-center justify-between p-3 border rounded-xl bg-gray-50">
-                        <div class="text-right">
-                            <span class="font-bold">${w.hebrew}</span>
-                            <span class="text-xs text-gray-400 mr-2">(${w.english})</span>
-                            <div class="text-[10px] text-blue-400">תשובה נכונה: ${w.phonetics[0]}</div>
-                        </div>
-                        <button onclick="deleteWord('${id}')" class="text-red-400"><i class="fas fa-trash"></i></button>
-                    </div>
-                `).join('');
-            }
-            const tomList = document.getElementById('tom-list');
-            if (tomList) {
-                tomList.innerHTML = list.map(([id, w]) => `
-                    <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-b-4 border-green-300">
-                        <div class="font-bold text-xl">${w.hebrew}</div>
-                        <div class="text-green-600 font-bold">${w.phonetics[0]}</div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        window.startPractice = async (type) => {
-            const words = Object.values(vocab);
-            if (!words.length) return showToast("אין מילים ברשימה", "bg-orange-500");
-            pType = type;
-            showView('view-practice');
-            document.getElementById('practice-input').value = "";
-            document.getElementById('practice-content').classList.add('hidden');
-            document.getElementById('practice-loading').classList.remove('hidden');
-
-            if (type === 'words') {
-                const w = words[Math.floor(Math.random() * words.length)];
-                currentQuestion = { q: w.hebrew, answers: w.phonetics };
-                document.getElementById('practice-q').innerText = currentQuestion.q;
-                document.getElementById('practice-loading').classList.add('hidden');
-                document.getElementById('practice-content').classList.remove('hidden');
-            } else {
-                try {
-                    const sys = `Create a short Hebrew sentence using ONLY these Hebrew words: [${words.map(w => w.hebrew).join(', ')}].
-                    Return JSON: {"hebrew_sentence": "Hebrew Sentence", "english_words_used": ["word1_key", "word2_key"]}.`;
-                    
-                    const res = await callGemini("create sentence", sys);
-                    
-                    // בניית התשובה הנכונה: עוברים מילה-מילה ומושכים את התשובה הראשונה שגיא הגדיר
-                    const correctSentencePhonetics = res.english_words_used.map(engKey => {
-                        const wordData = vocab[engKey.toLowerCase()];
-                        return wordData ? wordData.phonetics[0] : "";
-                    }).filter(p => p).join(' ');
-
-                    currentQuestion = { q: res.hebrew_sentence, answers: [correctSentencePhonetics] };
-                    document.getElementById('practice-q').innerText = currentQuestion.q;
-                } catch (e) {
-                    startPractice('words');
-                } finally {
-                    document.getElementById('practice-loading').classList.add('hidden');
-                    document.getElementById('practice-content').classList.remove('hidden');
-                }
-            }
-        };
-
-        window.checkAnswer = () => {
-            const val = removeNikud(document.getElementById('practice-input').value.trim()).toLowerCase();
-            if (!val || !currentQuestion) return;
-
-            // השוואה נקייה מניקוד מול רשימת התשובות
-            const isCorrect = currentQuestion.answers.some(a => removeNikud(a).toLowerCase() === val);
-            if (isCorrect) {
-                showToast("כל הכבוד! 🏆", "bg-green-500");
-                setTimeout(() => startPractice(pType), 1000);
-            } else {
-                showToast("לא בדיוק, נסה שוב", "bg-orange-500");
-            }
-        };
-
-        window.showView = (id) => {
-            ['view-selection', 'view-guy-login', 'view-guy-dash', 'view-tom-dash', 'view-practice'].forEach(v => document.getElementById(v).classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-        };
-
-        window.verifyGuy = () => {
-            if (document.getElementById('guy-password').value === '5312') {
-                showView('view-guy-dash');
-                document.getElementById('guy-password').value = "";
-            } else showToast('סיסמה שגויה', 'bg-red-500');
-        };
 
         function showToast(msg, color) {
             const container = document.getElementById('toast-container');
@@ -341,8 +232,236 @@
             setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
         }
 
-        updateKeyStatus();
-        render();
+        window.showView = (id) => {
+            ['view-selection', 'view-guy-login', 'view-guy-dash', 'view-tom-dash', 'view-practice'].forEach(v => document.getElementById(v).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        };
+
+        window.verifyGuy = () => {
+            if (document.getElementById('guy-password').value === '5312') {
+                window.showView('view-guy-dash');
+                document.getElementById('guy-password').value = "";
+            } else {
+                showToast('סיסמה שגויה', 'bg-red-500');
+            }
+        };
+
+        window.switchGuyTab = (tab) => {
+            document.getElementById('tab-words').className = tab === 'words' ? 'px-4 py-2 text-lg tab-active transition' : 'px-4 py-2 text-lg text-gray-500 transition';
+            document.getElementById('tab-sentences').className = tab === 'sentences' ? 'px-4 py-2 text-lg tab-active transition' : 'px-4 py-2 text-lg text-gray-500 transition';
+            document.getElementById('guy-tab-words').classList.toggle('hidden', tab !== 'words');
+            document.getElementById('guy-tab-sentences').classList.toggle('hidden', tab !== 'sentences');
+        };
+
+        window.saveWord = () => {
+            const heb = document.getElementById('edit-hebrew').value.trim();
+            const eng = document.getElementById('edit-english').value.trim();
+            const phonsRaw = document.getElementById('edit-phonetics').value.split(',');
+            const phons = phonsRaw.map(p => removeNikud(p.trim().toLowerCase())).filter(p => p);
+            
+            if (!heb || !eng || phons.length === 0) {
+                showToast("מלא את כל השדות", "bg-orange-500");
+                return;
+            }
+
+            const id = editingWordId || ('w_' + Date.now());
+            set(ref(db, 'vocabulary/' + id), { id, hebrew: heb, english: eng, phonetics: phons })
+                .then(() => window.cancelWordEdit());
+        };
+
+        window.editWord = (id) => {
+            const w = vocab[id];
+            editingWordId = id;
+            document.getElementById('edit-hebrew').value = w.hebrew;
+            document.getElementById('edit-english').value = w.english;
+            document.getElementById('edit-phonetics').value = (w.phonetics || []).join(', ');
+            document.getElementById('btn-cancel-word').classList.remove('hidden');
+        };
+
+        window.cancelWordEdit = () => {
+            editingWordId = null;
+            document.getElementById('edit-hebrew').value = "";
+            document.getElementById('edit-english').value = "";
+            document.getElementById('edit-phonetics').value = "";
+            document.getElementById('btn-cancel-word').classList.add('hidden');
+        };
+
+        window.deleteWord = (id) => {
+            if(confirm("למחוק מילה זו?")) remove(ref(db, 'vocabulary/' + id));
+        };
+
+        function renderGuyWords() {
+            const list = Object.values(vocab).reverse();
+            document.getElementById('words-count').innerText = list.length;
+            const container = document.getElementById('guy-words-list');
+            container.innerHTML = list.map(w => `
+                <div class="flex items-center justify-between p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition">
+                    <div class="text-right">
+                        <span class="font-bold text-lg text-gray-800">${w.hebrew}</span>
+                        <span class="text-sm text-gray-500 mr-2" dir="ltr">(${w.english})</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.editWord('${w.id}')" class="text-blue-500 p-2 rounded-lg hover:bg-blue-50 transition"><i class="fas fa-pencil-alt"></i></button>
+                        <button onclick="window.deleteWord('${w.id}')" class="text-red-500 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        const builderBox = document.getElementById('sentence-builder-box');
+
+        builderBox.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                currentSentenceBuilder.pop();
+                renderSentenceBuilderBox();
+            } 
+            else if (e.key.length === 1) {
+                if (!/[a-zA-Zא-ת]/.test(e.key)) {
+                    e.preventDefault();
+                    currentSentenceBuilder.push({ type: 'text', val: e.key });
+                    renderSentenceBuilderBox();
+                } else {
+                    e.preventDefault();
+                }
+            }
+        });
+
+        window.addWordToBuilder = (wordId) => {
+            // Automatic Space Logic: Add space before if there's already something and the last thing wasn't already a space
+            if (currentSentenceBuilder.length > 0) {
+                const last = currentSentenceBuilder[currentSentenceBuilder.length - 1];
+                if (!(last.type === 'text' && last.val.includes(' '))) {
+                    currentSentenceBuilder.push({ type: 'text', val: ' ' });
+                }
+            }
+            
+            currentSentenceBuilder.push({ type: 'word', id: wordId });
+            renderSentenceBuilderBox();
+            builderBox.focus();
+        };
+
+        function renderSentenceBuilderBox() {
+            builderBox.innerHTML = '';
+            currentSentenceBuilder.forEach(token => {
+                if (token.type === 'word') {
+                    const w = vocab[token.id];
+                    builderBox.innerHTML += `<span class="word-token">${w ? w.english : '[?]'}</span>`;
+                } else {
+                    builderBox.innerHTML += `<span class="whitespace-pre">${token.val}</span>`;
+                }
+            });
+            builderBox.innerHTML += `<span class="animate-pulse w-1 h-6 bg-purple-500 inline-block align-middle ml-1 rounded"></span>`;
+        }
+
+        function renderBuilderVocab() {
+            const list = Object.values(vocab);
+            const container = document.getElementById('builder-vocab-list');
+            container.innerHTML = list.map(w => `
+                <button onclick="window.addWordToBuilder('${w.id}')" class="bg-gray-100 hover:bg-indigo-100 border border-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-bold transition active:scale-95">
+                    ${w.hebrew}
+                </button>
+            `).join('');
+        }
+
+        window.saveSentence = () => {
+            const heb = document.getElementById('sentence-hebrew-prompt').value.trim();
+            if (!heb || currentSentenceBuilder.length === 0) return;
+
+            set(ref(db, 'sentences/s_' + Date.now()), {
+                id: 's_' + Date.now(),
+                hebrewPrompt: heb,
+                tokens: [...currentSentenceBuilder]
+            }).then(() => {
+                document.getElementById('sentence-hebrew-prompt').value = "";
+                currentSentenceBuilder = [];
+                renderSentenceBuilderBox();
+                showToast("המשפט נשמר", "bg-green-500");
+            });
+        };
+
+        window.deleteSentence = (id) => remove(ref(db, 'sentences/' + id));
+
+        function renderGuySentences() {
+            const list = Object.values(sentences);
+            document.getElementById('sentences-count').innerText = list.length;
+            const container = document.getElementById('guy-sentences-list');
+            container.innerHTML = list.slice().reverse().map(s => {
+                const engPreview = (s.tokens || []).map(t => t.type === 'word' ? (vocab[t.id] ? vocab[t.id].english : '?') : t.val).join('');
+                return `
+                <div class="flex items-center justify-between p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition">
+                    <div class="text-right">
+                        <span class="font-bold text-lg text-gray-800">${s.hebrewPrompt}</span>
+                        <div class="text-sm text-purple-600 font-bold mt-1" dir="ltr">${engPreview}</div>
+                    </div>
+                    <button onclick="window.deleteSentence('${s.id}')" class="text-red-500 p-2 rounded-lg hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
+                </div>
+            `}).join('');
+        }
+
+        function renderTomWords() {
+            const list = Object.values(vocab);
+            const container = document.getElementById('tom-words-list');
+            container.innerHTML = list.map(w => `
+                <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-b-4 border-green-300">
+                    <div class="font-bold text-xl text-gray-800">${w.hebrew}</div>
+                    <div class="text-green-600 font-bold mt-1">${(w.phonetics || [])[0] || ''}</div>
+                </div>
+            `).join('');
+        }
+
+        window.startPractice = (mode) => {
+            practiceMode = mode;
+            const list = mode === 'words' ? Object.values(vocab) : Object.values(sentences);
+            if (list.length === 0) return;
+            
+            const random = list[Math.floor(Math.random() * list.length)];
+            currentQuestionObj = mode === 'words' ? { q: random.hebrew, wordObj: random } : { q: random.hebrewPrompt, sentenceObj: random };
+
+            window.showView('view-practice');
+            document.getElementById('practice-q').innerText = currentQuestionObj.q;
+            document.getElementById('practice-input').value = "";
+            document.getElementById('practice-type-label').innerText = mode === 'words' ? 'מילה' : 'משפט';
+            setTimeout(() => document.getElementById('practice-input').focus(), 100);
+        };
+
+        window.checkAnswer = () => {
+            const tomInput = document.getElementById('practice-input').value;
+            const normTom = normalizeText(tomInput);
+            if (!normTom) return;
+
+            let isCorrect = false;
+            if (practiceMode === 'words') {
+                isCorrect = (currentQuestionObj.wordObj.phonetics || []).some(ans => normalizeText(ans) === normTom);
+            } else {
+                const tokens = currentQuestionObj.sentenceObj.tokens || [];
+                let possibilities = [""];
+                for (let t of tokens) {
+                    let next = [];
+                    if (t.type === 'text') possibilities.forEach(p => next.push(p + t.val));
+                    else if (vocab[t.id]) {
+                        possibilities.forEach(p => {
+                            vocab[t.id].phonetics.forEach(ph => next.push(p + ph));
+                        });
+                    }
+                    possibilities = next;
+                }
+                isCorrect = possibilities.some(p => normalizeText(p) === normTom);
+            }
+
+            if (isCorrect) {
+                showToast("כל הכבוד! 🏆", "bg-green-500");
+                setTimeout(() => window.startPractice(practiceMode), 1000);
+            } else {
+                showToast("נסה שוב", "bg-orange-500");
+            }
+        };
+
+        document.getElementById('practice-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.checkAnswer();
+        });
+
+        renderSentenceBuilderBox();
     </script>
 </body>
 </html>
